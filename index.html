@@ -3,10 +3,11 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>C172M — Turnback, T/O distances + SIGWX</title>
+  <title>C172M — Turnback Safety, T/O & WX Italy</title>
   <style>
     body { font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif; margin:0; padding:1rem; color:#111; }
     h1 { font-size:1.1rem; margin:0 0 0.35rem 0; }
+    h2 { font-size:1rem; margin:0 0 0.35rem 0; }
     .card { border:1px solid #ddd; border-radius:8px; padding:0.85rem; margin-bottom:1rem; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
     label { display:block; margin-top:0.5rem; font-size:0.9rem; }
     input, select, textarea, button { width:100%; padding:0.45rem; font-size:1rem; box-sizing:border-box; margin-top:0.2rem; }
@@ -20,22 +21,32 @@
     .warning { color:#b00020; font-size:0.8rem; margin-top:0.5rem; }
     .note { font-size:0.82rem; color:#333; margin-top:0.4rem; }
     svg { width:100%; height:170px; border-radius:6px; background:#fafafa; display:block; margin-top:0.6rem; }
-    img.wxchart { width:100%; border-radius:8px; display:block; margin-top:0.4rem; }
     .wx-row { display:flex; gap:0.5rem; margin-top:0.5rem; }
     .wx-row button { flex:1; }
+    iframe.wxchart { width:100%; max-width:1000px; height:520px; border-radius:8px; border:1px solid #ddd; margin-top:0.4rem; }
     iframe.osm { width:100%; height:260px; border:1px solid #ddd; border-radius:6px; margin-top:0.5rem; }
     pre.small-pre { white-space:pre-wrap; font-size:0.85rem; color:#444; margin-top:0.35rem; }
-    @media(max-width:600px){ .grid{ grid-template-columns:1fr } .wx-row{flex-direction:column} }
+    @media(max-width:600px){
+      .grid{ grid-template-columns:1fr }
+      .wx-row{ flex-direction:column }
+    }
   </style>
 </head>
 <body>
-  <h1>C172M — Turnback Safety, T/O Distances & SIGWX (Reggio)</h1>
-  <p class="small">Reggio Emilia (elev 152 ft). C172M — <strong>TRAINING TOOL ONLY</strong>. NON usare per decisioni operative.</p>
+  <h1>C172M — Turnback Safety, T/O Distances & WX (Reggio Emilia)</h1>
+  <p class="small">
+    Campo: Reggio Emilia (elev 152 ft). Aereo: C172M MTOW 2300 lb, best glide 65 kt, bank max 30°.<br>
+    <strong>USO DIDATTICO — NON per decisioni operative reali.</strong>
+  </p>
 
   <!-- METAR section -->
   <div class="card">
-    <h2>METAR (LIMP / LIPE) — Auto fetch</h2>
-    <p class="small">Incolla METAR o recuperali con AVWX. Temperature & QNH: media LIMP+LIPE se presenti. Vento: preso da LIMP se disponibile (fallback LIPE).</p>
+    <h2>METAR (LIMP / LIPE)</h2>
+    <p class="small">
+      Incolla i METAR o recuperali con AVWX.<br>
+      Temperatura &amp; QNH: media LIMP+LIPE se entrambi disponibili, altrimenti quello presente.<br>
+      Vento: preso da LIMP, fallback LIPE.
+    </p>
 
     <label for="metarLIMP">METAR LIMP (Parma)</label>
     <textarea id="metarLIMP" placeholder="METAR LIMP 011850Z 08008KT 9999 FEW030 05/02 Q1020"></textarea>
@@ -50,7 +61,6 @@
 
     <div id="metarStatus" class="small"></div>
   </div>
-
   <!-- WX charts section: LOW LEVEL ITALY -->
   <div class="card">
     <h2>WX Chart — LOW LEVEL ITALY (SWLL)</h2>
@@ -84,14 +94,22 @@
       Mappa: marker centrato su Reggio Emilia. Usa la SWLL per valutare i fenomeni in zona Italia / area Po Valley.
     </div>
   </div>
-  
+
+    <!-- OSM map centered on Reggio Emilia -->
+    <iframe class="osm"
+      src="https://www.openstreetmap.org/export/embed.html?bbox=10.55%2C44.65%2C10.71%2C44.74&layer=mapnik&marker=44.699%2C10.63"
+      title="Reggio Emilia map"></iframe>
+    <div class="small">
+      Mappa: marker centrato su Reggio Emilia. Usa la SWLL per valutare i fenomeni in zona Italia / area Po Valley.
+    </div>
+  </div>
 
   <!-- Inputs & T/O / Safety -->
   <div class="card">
-    <h2>Inputs (editable)</h2>
+    <h2>Inputs (editabili)</h2>
     <div class="grid">
       <div>
-        <label for="temp">Temperature (°C)</label>
+        <label for="temp">Temperatura aria (°C)</label>
         <input id="temp" type="number" value="15" />
       </div>
       <div>
@@ -99,22 +117,22 @@
         <input id="qnh" type="number" value="1013" />
       </div>
       <div>
-        <label for="windDir">Wind FROM (°) — auto from LIMP if available</label>
-        <input id="windDir" type="number" placeholder="e.g. 080" />
+        <label for="windDir">Direzione vento FROM (°)</label>
+        <input id="windDir" type="number" placeholder="es. 080" />
       </div>
       <div>
-        <label for="windSpeed">Wind speed (kt) — auto from LIMP if available</label>
-        <input id="windSpeed" type="number" placeholder="e.g. 10" />
+        <label for="windSpeed">Intensità vento (kt)</label>
+        <input id="windSpeed" type="number" placeholder="es. 8" />
       </div>
       <div>
-        <label for="runway">Runway</label>
+        <label for="runway">Pista</label>
         <select id="runway">
           <option value="11">RWY 11 (109°)</option>
           <option value="29">RWY 29 (289°)</option>
         </select>
       </div>
       <div>
-        <label for="units">Units</label>
+        <label for="units">Unità distanza</label>
         <select id="units">
           <option value="ft">Feet</option>
           <option value="m">Meters</option>
@@ -123,7 +141,7 @@
     </div>
 
     <div style="display:flex; gap:0.5rem; margin-top:0.6rem;">
-      <button class="btn primary" onclick="calculate()">Calculate</button>
+      <button class="btn primary" onclick="calculate()">Calcola</button>
       <button class="btn secondary" onclick="resetOutput()">Reset</button>
     </div>
 
@@ -132,10 +150,10 @@
       <div id="commentText" class="small" style="white-space:pre-line;"></div>
 
       <div class="card" style="margin-top:0.6rem;">
-        <div class="small"><strong>Takeoff distances (POH + adjusted)</strong></div>
+        <div class="small"><strong>Takeoff distances (POH + corrette)</strong></div>
         <div id="distanceText" class="small" style="margin-top:0.35rem;"></div>
 
-        <!-- Schematic -->
+        <!-- Runway schematic -->
         <svg id="runwaySvg" viewBox="0 0 1000 200" preserveAspectRatio="xMidYMid meet">
           <rect x="20" y="70" width="960" height="60" rx="6" fill="#222" opacity="0.06"></rect>
           <g id="centerline" stroke="#bbb" stroke-width="2" stroke-linecap="round"></g>
@@ -143,9 +161,9 @@
           <g id="labels" font-family="system-ui, -apple-system" font-size="12" fill="#222"></g>
         </svg>
 
-        <div class="note" style="margin-top:0.5rem;">
-          Base POH: Ground roll = <strong>835 ft</strong>, Over 50 ft obstacle = <strong>1475 ft</strong> @ 10°C, QNH 1013, no wind.<br>
-          Assunzioni: takeoff distance ≈ +12% per +1000 ft DA; wind effect ≈ ±5% per 5 kt.
+        <div class="note">
+          Base POH: Ground roll = <strong>835 ft</strong>, 50 ft obstacle = <strong>1475 ft</strong> @ 10°C, QNH 1013, no wind.<br>
+          Modello di correzione: ≈ +12% per +1000 ft di DA; vento ≈ ±5% per 5 kt (headwind riduce, tailwind aumenta).
         </div>
       </div>
 
@@ -153,16 +171,17 @@
         <pre id="calcDetails" class="small-pre"></pre>
       </div>
 
-      <div class="warning">TRAINING TOOL ONLY — validate with POH/AFM and instructor. NOT for real operations.</div>
+      <div class="warning">
+        TRAINING TOOL ONLY — confronta sempre con POH/AFM e istruttore. NON usare per decisioni operative reali.
+      </div>
     </div>
   </div>
 
 <script>
 /* ========== CONFIG ========== */
-/* AVWX token you already provided */
+/* AVWX token (visibile lato client, ok per uso personale) */
 const AVWX_TOKEN = "Z40mhXflUZEQ_xWPCMktcJz5kXX9mBAdBJsY_Jsv6wc";
 
-/* SIGWX image URL */
 const SWLL_SOURCE_URL = "https://www.meteoam.it/it/swll"; // solo per aprire il sito in nuova scheda
 
 function setSwllTimestamp(ts){
@@ -185,21 +204,18 @@ setSwllTimestamp(new Date().toLocaleString());
 
 /* ========== HELPERS ========== */
 function toRad(d){ return d * Math.PI / 180; }
-function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
 
-/* ---------- SIGWX utilities ---------- */
-function setSigwxTimestamp(ts){
-  document.getElementById('sigwxTime').textContent = ts || (new Date()).toLocaleString();
+/* ---------- SWLL utilities ---------- */
+function setSwllTimestamp(ts){
+  document.getElementById('swllTime').textContent = ts || (new Date()).toLocaleString();
 }
-function reloadSigwx(){
-  // force reload with cache-bust
-  const img = document.getElementById('sigwxImg');
-  const url = SIGWX_URL + "?_=" + Date.now();
-  img.src = url;
-  setSigwxTimestamp(new Date().toLocaleString());
+function reloadSwll(){
+  const frame = document.getElementById('swllFrame');
+  frame.src = SWLL_URL + "?_=" + Date.now(); // cache-bust
+  setSwllTimestamp(new Date().toLocaleString());
 }
-function openSigwxInNew(){
-  window.open(SIGWX_URL, "_blank");
+function openSwllInNew(){
+  window.open(SWLL_URL, "_blank");
 }
 
 /* ---------- METAR parsing & fetch ---------- */
@@ -212,6 +228,7 @@ function parseTempCode(code){
   if(isNaN(n)) return null;
   return neg ? -n : n;
 }
+
 function parseMetar(metar){
   if(!metar) return null;
   const text = metar.toUpperCase();
@@ -244,7 +261,7 @@ function extractFromMetars(){
   if(limp && lipe && limp.temp !== null && lipe.temp !== null && limp.qnh !== null && lipe.qnh !== null){
     avgT = (limp.temp + lipe.temp) / 2;
     avgQ = (limp.qnh + lipe.qnh) / 2;
-    msg = `Usati LIMP & LIPE per media: T≈${avgT.toFixed(1)}°C QNH≈${avgQ.toFixed(0)} hPa.`;
+    msg = `Media LIMP+LIPE: T≈${avgT.toFixed(1)}°C QNH≈${avgQ.toFixed(0)} hPa.`;
   } else if(limp && limp.temp !== null && limp.qnh !== null){
     avgT = limp.temp; avgQ = limp.qnh;
     msg = `Usato solo LIMP: T ${avgT}°C QNH ${avgQ} hPa.`;
@@ -253,14 +270,14 @@ function extractFromMetars(){
     msg = `Usato solo LIPE: T ${avgT}°C QNH ${avgQ} hPa.`;
   } else {
     status.style.color = '#b00020';
-    status.textContent = 'METAR presenti ma non contengono T e QNH nel formato atteso.';
+    status.textContent = 'METAR presenti, ma T/QNH non riconosciuti.';
     return;
   }
 
   document.getElementById('temp').value = avgT.toFixed(1);
   document.getElementById('qnh').value = avgQ.toFixed(0);
 
-  // Try extract wind from LIMP string (FORMAT: dddffKT)
+  // vento: prefer LIMP, fallback LIPE
   const windRx = / (\d{3})(\d{2,3})KT/;
   const limpWind = limp && limp.raw ? limp.raw.toUpperCase().match(windRx) : null;
   const lipeWind = lipe && lipe.raw ? lipe.raw.toUpperCase().match(windRx) : null;
@@ -268,20 +285,19 @@ function extractFromMetars(){
   if(limpWind){
     document.getElementById('windDir').value = parseInt(limpWind[1],10);
     document.getElementById('windSpeed').value = parseInt(limpWind[2],10);
-    msg += ` Vento impostato da LIMP: ${limpWind[1]}° / ${limpWind[2]} kt.`;
+    msg += ` Vento da LIMP: ${limpWind[1]}° / ${limpWind[2]} kt.`;
   } else if(lipeWind){
     document.getElementById('windDir').value = parseInt(lipeWind[1],10);
     document.getElementById('windSpeed').value = parseInt(lipeWind[2],10);
-    msg += ` Vento impostato da LIPE: ${lipeWind[1]}° / ${lipeWind[2]} kt.`;
+    msg += ` Vento da LIPE: ${lipeWind[1]}° / ${lipeWind[2]} kt.`;
   } else {
-    msg += ` Vento non trovato nei METAR; inserisci manualmente.`;
+    msg += ' Vento non riconosciuto, inserisci manualmente.';
   }
 
   status.style.color = '#198754';
   status.textContent = msg;
 }
 
-/* Fetch METAR(s) from AVWX */
 async function fetchSingleMetar(icao){
   if(!AVWX_TOKEN || AVWX_TOKEN === '') throw new Error('AVWX token non impostato');
   const url = `https://avwx.rest/api/metar/${icao}?format=json&token=${AVWX_TOKEN}`;
@@ -290,16 +306,20 @@ async function fetchSingleMetar(icao){
   const data = await res.json();
   const temp = data.temperature?.value;
   const qnh  = data.altimeter?.value;
-  const windDir = data.wind && data.wind.direction && typeof data.wind.direction.value === 'number' ? data.wind.direction.value : null;
-  const windSpeed = data.wind && data.wind.speed && typeof data.wind.speed.value === 'number' ? data.wind.speed.value : null;
+  const windDir = data.wind && data.wind.direction && typeof data.wind.direction.value === 'number'
+    ? data.wind.direction.value : null;
+  const windSpeed = data.wind && data.wind.speed && typeof data.wind.speed.value === 'number'
+    ? data.wind.speed.value : null;
   const raw = data.raw || data.sanitized || '';
   return { temp, qnh, windDir, windSpeed, raw };
 }
 
 async function fetchMetarsOnline(){
   const status = document.getElementById('metarStatus');
-  status.style.color = '#555'; status.textContent = 'Recupero METAR LIMP + LIPE...';
+  status.style.color = '#555';
+  status.textContent = 'Recupero METAR LIMP + LIPE...';
   const results = {};
+
   try { results.LIMP = await fetchSingleMetar('LIMP'); } catch(e){ console.log('LIMP err', e); }
   try { results.LIPE = await fetchSingleMetar('LIPE'); } catch(e){ console.log('LIPE err', e); }
 
@@ -307,7 +327,8 @@ async function fetchMetarsOnline(){
   const lipeOk = results.LIPE && typeof results.LIPE.temp === 'number' && typeof results.LIPE.qnh === 'number';
 
   if(!limpOk && !lipeOk){
-    status.style.color = '#b00020'; status.textContent = 'Nessun METAR utile recuperato (T/QNH). Inserisci manualmente o riprova.';
+    status.style.color = '#b00020';
+    status.textContent = 'Nessun METAR utile (T/QNH). Inserisci manualmente o riprova.';
     return;
   }
 
@@ -315,7 +336,7 @@ async function fetchMetarsOnline(){
   if(limpOk && lipeOk){
     avgT = (results.LIMP.temp + results.LIPE.temp) / 2;
     avgQ = (results.LIMP.qnh + results.LIPE.qnh) / 2;
-    msg = 'Usati LIMP & LIPE (media) per T/QNH.';
+    msg = 'Media LIMP+LIPE per T/QNH.';
   } else if(limpOk){
     avgT = results.LIMP.temp; avgQ = results.LIMP.qnh;
     msg = 'Usato solo LIMP per T/QNH.';
@@ -327,17 +348,16 @@ async function fetchMetarsOnline(){
   document.getElementById('temp').value = avgT.toFixed(1);
   document.getElementById('qnh').value = avgQ.toFixed(0);
 
-  // Wind: prefer LIMP
   if(results.LIMP && typeof results.LIMP.windDir === 'number' && typeof results.LIMP.windSpeed === 'number'){
     document.getElementById('windDir').value = Math.round(results.LIMP.windDir);
     document.getElementById('windSpeed').value = Math.round(results.LIMP.windSpeed);
-    msg += ` Vento impostato da LIMP: ${Math.round(results.LIMP.windDir)}° / ${Math.round(results.LIMP.windSpeed)} kt.`;
+    msg += ` Vento da LIMP: ${Math.round(results.LIMP.windDir)}° / ${Math.round(results.LIMP.windSpeed)} kt.`;
   } else if(results.LIPE && typeof results.LIPE.windDir === 'number' && typeof results.LIPE.windSpeed === 'number'){
     document.getElementById('windDir').value = Math.round(results.LIPE.windDir);
     document.getElementById('windSpeed').value = Math.round(results.LIPE.windSpeed);
-    msg += ` Vento impostato da LIPE: ${Math.round(results.LIPE.windDir)}° / ${Math.round(results.LIPE.windSpeed)} kt.`;
+    msg += ` Vento da LIPE: ${Math.round(results.LIPE.windDir)}° / ${Math.round(results.LIPE.windSpeed)} kt.`;
   } else {
-    msg += ' Vento non disponibile dai METAR; inserisci manualmente.';
+    msg += ' Vento non disponibile, inserisci manualmente.';
   }
 
   if(results.LIMP && results.LIMP.raw) document.getElementById('metarLIMP').value = results.LIMP.raw;
@@ -345,53 +365,47 @@ async function fetchMetarsOnline(){
 
   status.style.color = '#198754';
   status.textContent = msg;
-  // update sigwx timestamp to indicate refresh when fetching METARs too
-  setSigwxTimestamp(new Date().toLocaleString());
+
+  setSwllTimestamp(new Date().toLocaleString());
 }
 
-/* ---------- Main calculation & diagram (same as previous) ---------- */
+/* ---------- Main calculation & diagram ---------- */
 function calculate(){
-  // constants and POH base values
-  const fieldElev = 152; // ft
-  const baseSafety = 900; // ft standard
-  const baseGroundRoll = 835; // ft (POH)
-  const base50ft = 1475; // ft (POH)
+  const fieldElev = 152;   // ft
+  const baseSafety = 900;  // ft AGL standard
+  const baseGroundRoll = 835; // ft
+  const base50ft = 1475;      // ft
   const runwayLength_m = 1210;
   const runwayLength_ft = Math.round(runwayLength_m * 3.28084);
 
-  // inputs
   const temp = parseFloat(document.getElementById('temp').value);
   const qnh  = parseFloat(document.getElementById('qnh').value);
   const windDir = parseFloat(document.getElementById('windDir').value);
   const windSpeed = parseFloat(document.getElementById('windSpeed').value);
   const runway = document.getElementById('runway').value;
-  const units = document.getElementById('units').value;
+  const units  = document.getElementById('units').value;
 
   if([temp,qnh,windDir,windSpeed].some(v => isNaN(v))){
-    alert('Inserisci valori numerici per temperatura, QNH, direzione e velocità vento.');
+    alert('Inserisci valori numerici per T, QNH, vento (dir/int).');
     return;
   }
 
-  // Pressure altitude approx
+  // Pressure altitude
   const pa = fieldElev + (1013 - qnh) * 30; // ft
 
-  // ISA temp at field
+  // ISA temp al campo
   const isaTemp = 15 - 2 * (fieldElev / 1000);
 
-  // Density altitude
+  // Density altitude (approx)
   const da = pa + 120 * (temp - isaTemp); // ft
 
-  // DA factor for safety (10% per 1000 ft)
   const daDiff = da - fieldElev;
-  const daFactorSafety = 1 + 0.10 * (daDiff / 1000);
+  const daFactorSafety = 1 + 0.10 * (daDiff / 1000); // +10% / 1000 ft
+  const daFactorDist   = 1 + 0.12 * (daDiff / 1000); // +12% / 1000 ft
 
-  // DA factor for distances (+12% /1000 ft)
-  const daFactorDist = 1 + 0.12 * (daDiff / 1000);
-
-  // wind component along runway
   const rwyHeading = runway === '11' ? 109 : 289;
   const angle = toRad(rwyHeading - windDir);
-  const headwind = windSpeed * Math.cos(angle); // +headwind, -tailwind
+  const headwind = windSpeed * Math.cos(angle); // + headwind, - tailwind
 
   // wind factors
   let windFactorSafety = 1;
@@ -416,52 +430,55 @@ function calculate(){
 
   // adjusted distances
   const adjGroundRoll_ft = baseGroundRoll * daFactorDist * windDistFactor;
-  const adj50ft_ft = base50ft * daFactorDist * windDistFactor;
+  const adj50ft_ft       = base50ft      * daFactorDist * windDistFactor;
 
-  // safety altitude
-  const safetyCalc = baseSafety * daFactorSafety * windFactorSafety;
+  // safety altitude (theoretical + min 900)
+  const safetyCalc    = baseSafety * daFactorSafety * windFactorSafety;
   const safetyRounded = Math.round(safetyCalc / 10) * 10;
   const safetySuggested = Math.max(baseSafety, safetyRounded);
 
-  // prepare display
   const unitsLabel = units === 'ft' ? 'ft' : 'm';
   const convert = v_ft => units === 'ft' ? v_ft : (v_ft * 0.3048);
   const toFixedVal = v => units === 'ft' ? Math.round(v) : Math.round(v*10)/10;
 
   document.getElementById('safetyAltText').textContent =
-    `Safety altitude (theoretical): ${safetyRounded} ft AGL — Suggested operational minimum: ${safetySuggested} ft AGL (Reggio standard ${baseSafety} ft).`;
+    `Safety altitude (teorica): ${safetyRounded} ft AGL — Minimo operativo suggerito: ${safetySuggested} ft AGL (standard Reggio ${baseSafety} ft).`;
 
   let comment = '';
   if(safetyRounded < baseSafety){
-    comment = `Theoretical safety altitude is below Reggio standard. Keep ${baseSafety} ft as minimum for considering turnback.`;
+    comment = `Il calcolo teorico è inferiore allo standard Reggio. Per valutare un turnback in addestramento, considera comunque ${baseSafety} ft come minima safety altitude (anche se teoricamente ${safetyRounded} ft).`;
   } else if(safetyRounded < 1100){
-    comment = `Theoretical safety altitude slightly above standard — consider ${safetyRounded} ft for training guidance.`;
+    comment = `Safety altitude teorica leggermente superiore allo standard — usa ${safetyRounded} ft come riferimento addestrativo (sempre con margine e valutazione locale).`;
   } else {
-    comment = `High safety altitude (high DA and/or tailwind). Exercise caution.`;
+    comment = `Safety altitude teorica elevata (DA alta e/o tailwind). Condizioni sfavorevoli per il turnback: preferibile proseguire dritto salvo training specifico con istruttore.`;
   }
   document.getElementById('commentText').textContent = comment;
 
-  // distances text
-  const distText = `Base POH (10°C, QNH1013, no wind): ground roll = ${baseGroundRoll} ft (${Math.round(baseGroundRoll*0.3048)} m), 50 ft obstacle = ${base50ft} ft (${Math.round(base50ft*0.3048)} m).
-Adjusted (DA ≈ ${Math.round(da)} ft, headwind ≈ ${headwind.toFixed(1)} kt):
+  const distText =
+`Base POH (10°C, QNH 1013, no wind):
+- Ground roll = ${baseGroundRoll} ft (${Math.round(baseGroundRoll*0.3048)} m)
+- 50 ft obstacle = ${base50ft} ft (${Math.round(base50ft*0.3048)} m)
+
+Corretto (DA ≈ ${Math.round(da)} ft, headwind ≈ ${headwind.toFixed(1)} kt):
 - Ground roll ≈ ${toFixedVal(convert(adjGroundRoll_ft))} ${unitsLabel}
-- To clear 50 ft obstacle ≈ ${toFixedVal(convert(adj50ft_ft))} ${unitsLabel}
+- 50 ft obstacle ≈ ${toFixedVal(convert(adj50ft_ft))} ${unitsLabel}
 Runway length: ${runwayLength_ft} ft (${runwayLength_m} m).`;
+
   document.getElementById('distanceText').textContent = distText;
 
-  // details
-  const details = `Pressure altitude ≈ ${Math.round(pa)} ft
-ISA temp at field ≈ ${isaTemp.toFixed(1)} °C
+  const details =
+`Pressure altitude ≈ ${Math.round(pa)} ft
+ISA temp campo ≈ ${isaTemp.toFixed(1)} °C
 Density altitude ≈ ${Math.round(da)} ft
 DA factor (dist) ≈ ${daFactorDist.toFixed(2)}
 DA factor (safety) ≈ ${daFactorSafety.toFixed(2)}
-Wind along runway ≈ ${headwind.toFixed(1)} kt (windDistFactor ${windDistFactor.toFixed(2)}, windSafetyFactor ${windFactorSafety.toFixed(2)})
-Adjusted groundroll ${Math.round(adjGroundRoll_ft)} ft, adjusted 50 ft ${Math.round(adj50ft_ft)} ft.`;
+Headwind effettivo ≈ ${headwind.toFixed(1)} kt
+windDistFactor ≈ ${windDistFactor.toFixed(2)} | windSafetyFactor ≈ ${windFactorSafety.toFixed(2)}
+Adjusted ground roll ≈ ${Math.round(adjGroundRoll_ft)} ft
+Adjusted 50 ft ≈ ${Math.round(adj50ft_ft)} ft`;
   document.getElementById('calcDetails').textContent = details;
 
-  // draw diagram
   drawRunwayDiagram(adjGroundRoll_ft, adj50ft_ft, runwayLength_ft, units);
-
   document.getElementById('output').style.display = 'block';
 }
 
@@ -471,13 +488,13 @@ function resetOutput(){
   document.getElementById('metarStatus').textContent = '';
 }
 
-/* SVG drawing (same as before) */
+/* SVG drawing */
 function drawRunwayDiagram(ground_ft, fifty_ft, rwy_ft, units){
   const svg = document.getElementById('runwaySvg');
   const markers = svg.querySelector('#markers');
   const labels = svg.querySelector('#labels');
   const centerline = svg.querySelector('#centerline');
-  // clear
+
   while(markers.firstChild) markers.removeChild(markers.firstChild);
   while(labels.firstChild) labels.removeChild(labels.firstChild);
   while(centerline.firstChild) centerline.removeChild(centerline.firstChild);
@@ -487,12 +504,12 @@ function drawRunwayDiagram(ground_ft, fifty_ft, rwy_ft, units){
   const pxPerFt = usableW / rwy_ft;
 
   const ground_clamped = Math.min(ground_ft, rwy_ft);
-  const fifty_clamped = Math.min(fifty_ft, rwy_ft);
+  const fifty_clamped  = Math.min(fifty_ft, rwy_ft);
 
   const groundPx = Math.max(6, ground_clamped * pxPerFt);
-  const fiftyPx = fifty_clamped * pxPerFt;
+  const fiftyPx  = fifty_clamped * pxPerFt;
 
-  // centerline dashes
+  // centerline
   let x = marginLeft + 10;
   const dashW = 12, gap = 8;
   while(x < marginLeft + usableW - 10){
@@ -504,7 +521,7 @@ function drawRunwayDiagram(ground_ft, fifty_ft, rwy_ft, units){
     x += dashW + gap;
   }
 
-  // Ground roll rectangle (blue)
+  // ground roll (blu)
   const gRect = document.createElementNS('http://www.w3.org/2000/svg','rect');
   gRect.setAttribute('x', marginLeft + 6);
   gRect.setAttribute('y', 50);
@@ -514,7 +531,7 @@ function drawRunwayDiagram(ground_ft, fifty_ft, rwy_ft, units){
   gRect.setAttribute('opacity', '0.35');
   markers.appendChild(gRect);
 
-  // 50 ft obstacle line (red)
+  // 50 ft line (rosso)
   const fiftyLine = document.createElementNS('http://www.w3.org/2000/svg','line');
   fiftyLine.setAttribute('x1', marginLeft + 6 + fiftyPx);
   fiftyLine.setAttribute('y1', 40);
@@ -524,7 +541,6 @@ function drawRunwayDiagram(ground_ft, fifty_ft, rwy_ft, units){
   fiftyLine.setAttribute('stroke-width', 2);
   markers.appendChild(fiftyLine);
 
-  // labels
   const makeText = (txt, x, y, anchor='start', size=12) => {
     const t = document.createElementNS('http://www.w3.org/2000/svg','text');
     t.setAttribute('x', x); t.setAttribute('y', y);
@@ -549,8 +565,8 @@ function formatDist(v_ft, units){
   return `${m} m`;
 }
 
-/* initialize: set sigwx timestamp */
-setSigwxTimestamp(new Date().toLocaleString());
+/* init */
+setSwllTimestamp(new Date().toLocaleString());
 </script>
 </body>
 </html>
