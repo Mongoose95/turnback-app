@@ -60,15 +60,6 @@
       <div>
         <label for="tasCruise">TAS cruise (kt)</label>
         <input id="tasCruise" type="number" value="100" />
-      </div>
-      <div>
-        <label for="windDirCruise">Wind FROM (°) @ cruise</label>
-        <input id="windDirCruise" type="number" placeholder="es. 270" />
-      </div>
-      <div>
-        <label for="windSpdCruise">Wind speed (kt)</label>
-        <input id="windSpdCruise" type="number" placeholder="es. 20" />
-      </div>
       <div>
         <label for="cruiseAlt">Cruise altitude (ft AMSL)</label>
         <input id="cruiseAlt" type="number" value="3000" />
@@ -285,7 +276,65 @@ function openSwllSource(){
 }
 
 /* ========== ROUTE: Airports DB & utilities ========== */
+// Sceglie il livello di pressione in base alla quota cruise
+function choosePressureLevel(cruiseAltFt) {
+  // Approx: 925hPa ~ 2600 ft, 850hPa ~ 5000 ft, 700hPa ~ 10000 ft
+  if (cruiseAltFt <= 3000) {
+    return { level: 925, speedKey: "wind_speed_925hPa", dirKey: "wind_direction_925hPa" };
+  } else if (cruiseAltFt <= 8000) {
+    return { level: 850, speedKey: "wind_speed_850hPa", dirKey: "wind_direction_850hPa" };
+  } else {
+    return { level: 700, speedKey: "wind_speed_700hPa", dirKey: "wind_direction_700hPa" };
+  }
+}
 
+// Recupera automaticamente il vento in cruise usando Open-Meteo
+async function getCruiseWindAuto(dep, dest, cruiseAltFt) {
+  const midLat = (dep.lat + dest.lat) / 2;
+  const midLon = (dep.lon + dest.lon) / 2;
+
+  const cfg = choosePressureLevel(cruiseAltFt);
+
+  const url =
+    "https://api.open-meteo.com/v1/forecast" +
+    `?latitude=${midLat.toFixed(4)}` +
+    `&longitude=${midLon.toFixed(4)}` +
+    `&hourly=${cfg.speedKey},${cfg.dirKey}` +
+    `&pressure_level=${cfg.level}` +
+    "&forecast_hours=1" +
+    "&wind_speed_unit=kn" +
+    "&timezone=UTC";
+
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+
+    const speedArr = data.hourly && data.hourly[cfg.speedKey];
+    const dirArr   = data.hourly && data.hourly[cfg.dirKey];
+
+    if (!speedArr || !dirArr || !speedArr.length || !dirArr.length) {
+      throw new Error("Missing wind data in response");
+    }
+
+    const windSpd = speedArr[0]; // in kt (per wind_speed_unit=kn)
+    const windDir = dirArr[0];   // in degrees
+
+    return {
+      windSpd,
+      windDir,
+      info: `Cruise wind (auto, ${cfg.level} hPa, midpoint): FROM ${windDir.toFixed(0)}° / ${windSpd.toFixed(1)} kt`
+    };
+  } catch (e) {
+    console.error("Open-Meteo wind fetch error:", e);
+    // Fallback: nessun vento
+    return {
+      windSpd: 0,
+      windDir: 0,
+      info: "Cruise wind auto fetch FAILED (assumed calm, 0 kt)."
+    };
+  }
+}
 let AIRPORTS_IT = null; // verrà riempito da airports_it.csv
 
 // loader CSV per airports_it.csv
@@ -397,16 +446,14 @@ async function computeRouteFromInputs() {
   const depIcao = document.getElementById('depIcao').value.trim().toUpperCase();
   const destIcao = document.getElementById('destIcao').value.trim().toUpperCase();
   const tas = parseFloat(document.getElementById('tasCruise').value);
-  const windDir = parseFloat(document.getElementById('windDirCruise').value);
-  const windSpd = parseFloat(document.getElementById('windSpdCruise').value);
   const cruiseAlt = parseFloat(document.getElementById('cruiseAlt').value);
   const offBlockStr = document.getElementById('offBlockTime').value.trim();
   const circuitHeight = parseFloat(document.getElementById('circuitHeight').value) || 1000;
 
   const outEl = document.getElementById('routeOutput');
 
-  if (!depIcao || !destIcao || !tas || !windDir || isNaN(windSpd) || !cruiseAlt) {
-    outEl.textContent = 'Inserisci Dept, Dest, TAS, vento e quota cruise.';
+  if (!depIcao || !destIcao || !tas || !cruiseAlt) {
+    outEl.textContent = 'Inserisci Dept, Dest, TAS e quota cruise.';
     return;
   }
 
@@ -417,9 +464,16 @@ async function computeRouteFromInputs() {
     return;
   }
 
+  // Calcolo distanza + track
   const { distNm, trackTrue } = gcDistanceAndTrack(dep.lat, dep.lon, dest.lat, dest.lon);
   const trackMag = applyMagVar(trackTrue);
 
+  // Recupero vento automatico sul punto medio
+  const wind = await getCruiseWindAuto(dep, dest, cruiseAlt);
+  const windDir = wind.windDir;
+  const windSpd = wind.windSpd;
+
+  // Correzione di deriva con vento auto
   const wc = windCorrection(trackTrue, tas, windDir, windSpd);
   const gs = Math.max(40, wc.gs); // evita GS assurde
   const eetHours = distNm / gs;
@@ -431,7 +485,7 @@ async function computeRouteFromInputs() {
     etaStr = addHoursToTime(baseTime, eetHours);
   }
 
-  // TOC (salita) con ROC 700 ft/min, GS salita = 0.8 TAS
+  // TOC (salita)
   const depElev = dep.elev_ft || 0;
   const deltaClimbFt = Math.max(0, cruiseAlt - depElev);
   let tocTimeMin = 0, tocDistNm = 0;
@@ -442,7 +496,7 @@ async function computeRouteFromInputs() {
     tocDistNm = gsClimb * (tocTimeMin / 60);
   }
 
-  // TOD (discesa) da cruise a circuit altitude su destination
+  // TOD (discesa) verso circuit alt DEST
   const destElev = dest.elev_ft || 0;
   const circuitAlt = destElev + circuitHeight;
   const deltaDescentFt = Math.max(0, cruiseAlt - circuitAlt);
@@ -459,10 +513,12 @@ async function computeRouteFromInputs() {
   txt += `DEST: ${destIcao} (${dest.name}), elev ${Math.round(destElev)} ft\n\n`;
   txt += `Distance (GC): ${distNm.toFixed(1)} NM\n`;
   txt += `Track TRUE: ${trackTrue.toFixed(0)}°\n`;
-  txt += `Track MAG (~3°E): ${trackMag.toFixed(0)}°\n`;
-  txt += `Wind FROM: ${windDir.toFixed(0)}° / ${windSpd.toFixed(0)} kt\n`;
+  txt += `Track MAG (~3°E): ${trackMag.toFixed(0)}°\n\n`;
+
+  txt += `${wind.info}\n`;
   txt += `Heading TRUE (wind corr): ${wc.headingDeg.toFixed(0)}° (drift ${wc.driftDeg.toFixed(1)}°)\n`;
   txt += `GS stimata: ${gs.toFixed(1)} kt\n\n`;
+
   txt += `EET: ≈ ${eetMin} min\n`;
   txt += `Off-block: ${offBlockStr || 'n/a'}  → ETA stimata: ${etaStr}\n\n`;
 
@@ -480,7 +536,6 @@ async function computeRouteFromInputs() {
 
   outEl.textContent = txt;
 }
-
 /* ========== METAR parsing & fetch ========== */
 function parseTempCode(code){
   if(!code) return null;
