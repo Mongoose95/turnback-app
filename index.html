@@ -39,6 +39,19 @@
     Vento in cruise dal modello GFS (Open-Meteo) sul punto medio rotta.<br>
     METAR degli aeroporti entro ~25 NM dalla track ricavati via AVWX.
   </p>
+  <!-- NOTAM DEP / DEST / ENROUTE -->
+<div class="card">
+  <h2>NOTAM — DEP / DEST / ENROUTE (AVWX)</h2>
+  <p class="small">
+    Usa i campi ICAO di partenza e destinazione sopra.<br>
+    Recupera i NOTAM di:
+    <br>• aeroporto di partenza (DEP)
+    <br>• aeroporto di destinazione (DEST)
+    <br>• aeroporti lungo rotta entro ~25 NM (stesso algoritmo usato per i METAR enroute).
+  </p>
+  <button class="btn secondary" onclick="loadNotams()">Carica NOTAM</button>
+  <pre id="notamOutput" class="small" style="margin-top:.4rem;"></pre>
+</div>
   <div class="grid">
     <div>
       <label for="depIcao">Departure ICAO</label>
@@ -433,6 +446,97 @@ function findMetarAlongRoute(dep, dest, maxDistNm) {
 }
 
 /* =================== ROUTE MAIN =================== */
+  /* =================== NOTAM DEP/DEST/ENROUTE =================== */
+async function loadNotams() {
+  const out = document.getElementById('notamOutput');
+  out.textContent = '';
+
+  // assicuriamoci di avere il DB aeroporti
+  await loadAirports();
+  if (!AIRPORTS_IT) {
+    out.textContent = 'Impossibile caricare airports_it.csv.';
+    return;
+  }
+
+  const depId  = document.getElementById('depIcao').value.trim().toUpperCase();
+  const destId = document.getElementById('destIcao').value.trim().toUpperCase();
+
+  if (!depId || !destId) {
+    out.textContent = 'Inserisci prima DEP e DEST nella sezione Route.';
+    return;
+  }
+
+  const dep  = AIRPORTS_IT[depId];
+  const dest = AIRPORTS_IT[destId];
+
+  if (!dep || !dest) {
+    out.textContent = 'DEP/DEST non trovati in airports_it.csv.';
+    return;
+  }
+
+  if (!AVWX_TOKEN) {
+    out.textContent = 'AVWX_TOKEN non impostato: impossibile caricare i NOTAM.';
+    return;
+  }
+
+  // aeroporti enroute entro 25 NM (stesso criterio dei METAR)
+  const enrouteAirfields = findMetarAlongRoute(dep, dest, 25);
+
+  // lista ICAO unica: DEP + DEST + enroute
+  const icaos = [];
+  function addIcao(id) {
+    if (id && !icaos.includes(id)) icaos.push(id);
+  }
+  addIcao(depId);
+  addIcao(destId);
+  enrouteAirfields.forEach(s => addIcao(s.icao));
+
+  if (!icaos.length) {
+    out.textContent = 'Nessun aerodromo su cui cercare NOTAM.';
+    return;
+  }
+
+  let text = 'NOTAM via AVWX (uso didattico)\n\n';
+
+  for (const icao of icaos) {
+    text += `*** ${icao} ***\n`;
+    try {
+      const url =
+        'https://avwx.rest/api/notam/' +
+        encodeURIComponent(icao) +
+        '?format=json&token=' +
+        encodeURIComponent(AVWX_TOKEN);
+
+      const res = await fetch(url);
+      if (!res.ok) {
+        text += `(errore HTTP ${res.status})\n\n`;
+        continue;
+      }
+
+      const arr = await res.json();
+      if (!arr || !arr.length) {
+        text += '(nessun NOTAM trovato)\n\n';
+        continue;
+      }
+
+      const max = Math.min(arr.length, 5); // per non esplodere di testo
+      for (let i = 0; i < max; i++) {
+        const n = arr[i];
+        const raw =
+          n.raw ||
+          (Array.isArray(n.text) ? n.text.join(' ') : '(testo NOTAM non disponibile)');
+        text += `- ${raw}\n\n`;
+      }
+    } catch (e) {
+      console.error('Errore NOTAM', icao, e);
+      text += '(errore nel caricamento)\n\n';
+    }
+  }
+
+  text += '---\nNota: elenco limitato ai primi NOTAM per ogni aerodromo (MAX 5).';
+  out.textContent = text;
+}
+  
 async function computeRoute() {
   const out = document.getElementById('routeOutput');
   out.textContent = '';
