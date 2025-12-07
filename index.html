@@ -396,7 +396,67 @@ function gcDistanceAndTrack(lat1, lon1, lat2, lon2) {
 
   return { distNm, trackTrue };
 }
+// Trova aeroporti vicini alla rotta (distanza max dalla track, in NM)
+// Restituisce una lista ordinata lungo il percorso (parametro t 0→1)
+function findMetarAlongRoute(dep, dest, maxDistNm) {
+  if (!AIRPORTS_IT) return [];
 
+  const R_nm = 3440.065;
+  const lat0 = deg2rad((dep.lat + dest.lat) / 2);
+  const lon0 = deg2rad((dep.lon + dest.lon) / 2);
+
+  // converte lat/lon in coordinate "quasi piane" x,y in NM
+  function toXY(lat, lon) {
+    const φ = deg2rad(lat);
+    const λ = deg2rad(lon);
+    const x = (λ - lon0) * Math.cos(lat0) * R_nm;
+    const y = (φ - lat0) * R_nm;
+    return { x, y };
+  }
+
+  const A = toXY(dep.lat, dep.lon);
+  const B = toXY(dest.lat, dest.lon);
+  const ABx = B.x - A.x;
+  const ABy = B.y - A.y;
+  const ab2 = ABx*ABx + ABy*ABy || 1; // evita div/0
+
+  const results = [];
+
+  for (const icao in AIRPORTS_IT) {
+    if (!Object.prototype.hasOwnProperty.call(AIRPORTS_IT, icao)) continue;
+    const ap = AIRPORTS_IT[icao];
+
+    // salta dep/dest
+    if (icao === dep.icao || icao === dest.icao) continue;
+
+    const P = toXY(ap.lat, ap.lon);
+    const APx = P.x - A.x;
+    const APy = P.y - A.y;
+
+    // proiezione sulla retta AB → parametro t (0..1 = dentro segmento)
+    const t = (APx*ABx + APy*ABy) / ab2;
+    if (t < 0 || t > 1) continue; // fuori dal segmento DEP-DEST
+
+    const projx = A.x + t * ABx;
+    const projy = A.y + t * ABy;
+    const dx = P.x - projx;
+    const dy = P.y - projy;
+    const dist = Math.sqrt(dx*dx + dy*dy); // distanza dalla track in NM
+
+    if (dist <= maxDistNm) {
+      results.push({
+        icao: ap.icao,
+        name: ap.name,
+        dist,
+        t
+      });
+    }
+  }
+
+  // ordina lungo la rotta (da DEP a DEST) e limita a un numero ragionevole
+  results.sort((a, b) => a.t - b.t);
+  return results.slice(0, 10);
+}
 // WCA + GS: vento dato come FROM
 function windCorrection(courseDeg, tas, windFromDeg, windSpeed) {
   const beta = deg2rad(windFromDeg - courseDeg);
@@ -534,7 +594,20 @@ async function computeRouteFromInputs() {
     txt += `TOD: nessuna discesa (cruise ≤ circuit altitude DEST)\n`;
   }
 
+  // 🔹 NUOVA PARTE: aeroporti con METAR lungo la rotta
+  const metarStations = findMetarAlongRoute(dep, dest, 25); // raggio 25 NM dalla track
+
+  if (metarStations.length > 0) {
+    txt += `\nMETAR potenzialmente disponibili lungo la rotta (≤25 NM dalla track):\n`;
+    metarStations.forEach(s => {
+      txt += `- ${s.icao} (${s.name}), offset ≈ ${s.dist.toFixed(1)} NM\n`;
+    });
+  } else {
+    txt += `\nMETAR lungo la rotta (≤25 NM): nessun aerodromo trovato nel database.\n`;
+  }
+
   outEl.textContent = txt;
+}
 }
 /* ========== METAR parsing & fetch ========== */
 function parseTempCode(code){
